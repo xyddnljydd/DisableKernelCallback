@@ -23,3 +23,5 @@ minifilter（直接清零mj 0-1B的回调；顺便处理了minifilter的ConnectN
 # 参考
 
 https://github.com/Cr4sh/KernelForge
+
+https://blog.csdn.net/cssxn/article/details/126047988

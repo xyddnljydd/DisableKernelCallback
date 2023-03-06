@@ -31,6 +31,7 @@ int main()
 
 		//RopDemo((HANDLE)2124);
 		//InitFunc();
+
 		DisablePsProcess();
 		DisablePsImg();
 		DisablePsThread();
@@ -38,6 +39,8 @@ int main()
 		DisableObCallBack();
 
 		DisableCm();
+		
+		DisableMinifilter();
 
 	} while (false);
 

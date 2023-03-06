@@ -485,8 +485,6 @@ typedef struct _OB_CALLBACK
 }OB_CALLBACK, * POB_CALLBACK;
 #pragma pack()
 
-
-
 typedef struct _CM_NOTIFY_ENTRY
 {
 	LIST_ENTRY  ListEntryHead;
@@ -496,3 +494,57 @@ typedef struct _CM_NOTIFY_ENTRY
 	PVOID   Context;
 	PVOID   Function;
 }CM_NOTIFY_ENTRY, * PCM_NOTIFY_ENTRY;
+
+typedef enum _POOL_TYPE {
+	NonPagedPool,
+	NonPagedPoolExecute = NonPagedPool,
+	PagedPool,
+	NonPagedPoolMustSucceed = NonPagedPool + 2,
+	DontUseThisType,
+	NonPagedPoolCacheAligned = NonPagedPool + 4,
+	PagedPoolCacheAligned,
+	NonPagedPoolCacheAlignedMustS = NonPagedPool + 6,
+	MaxPoolType,
+	NonPagedPoolBase = 0,
+	NonPagedPoolBaseMustSucceed = NonPagedPoolBase + 2,
+	NonPagedPoolBaseCacheAligned = NonPagedPoolBase + 4,
+	NonPagedPoolBaseCacheAlignedMustS = NonPagedPoolBase + 6,
+	NonPagedPoolSession = 32,
+	PagedPoolSession = NonPagedPoolSession + 1,
+	NonPagedPoolMustSucceedSession = PagedPoolSession + 1,
+	DontUseThisTypeSession = NonPagedPoolMustSucceedSession + 1,
+	NonPagedPoolCacheAlignedSession = DontUseThisTypeSession + 1,
+	PagedPoolCacheAlignedSession = NonPagedPoolCacheAlignedSession + 1,
+	NonPagedPoolCacheAlignedMustSSession = PagedPoolCacheAlignedSession + 1,
+	NonPagedPoolNx = 512,
+	NonPagedPoolNxCacheAligned = NonPagedPoolNx + 4,
+	NonPagedPoolSessionNx = NonPagedPoolNx + 32,
+
+} POOL_TYPE;
+
+typedef ULONG FLT_OPERATION_REGISTRATION_FLAGS;
+typedef struct _FLT_OPERATION_REGISTRATION {
+
+	UCHAR MajorFunction;
+	FLT_OPERATION_REGISTRATION_FLAGS Flags;
+	PVOID PreOperation;
+	PVOID PostOperation;
+	PVOID Reserved1;
+} FLT_OPERATION_REGISTRATION, * PFLT_OPERATION_REGISTRATION;
+
+#define IRP_MJ_OPERATION_END                        ((UCHAR)0x80)
+#define IRP_MJ_MAXIMUM_FUNCTION         0x1b
+
+
+typedef struct _FLT_SERVER_PORT_OBJECT
+{
+	LIST_ENTRY FilterLink;
+	PVOID ConnectNotify;
+	PVOID DisconnectNotify;
+	PVOID MessageNotify;
+	PVOID Filter;
+	PVOID Cookie;
+	ULONG Flags;
+	LONG NumberOfConnections;
+	LONG MaxConnections;
+} FLT_SERVER_PORT_OBJECT, * PFLT_SERVER_PORT_OBJECT;

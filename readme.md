@@ -12,7 +12,7 @@ ObRegisterCallbacks（调用对应的注销函数）
 
 CmRegisterCallback（调用对应的注销函数）
 
-minifilter（待续）
+minifilter（直接清零mj 0-1B的回调；顺便处理了minifilter的ConnectNotify、DisconnectNotify、MessageNotify。如果你不想直接清零，可以返回回调为rop_6 xor rax,rax retn）
 
 运行的时候需要管理员权限。
 

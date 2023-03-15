@@ -309,17 +309,18 @@ void SetPhyMem(HANDLE hPhysMem)
 	g_hPhysMem = hPhysMem;
 }
 
+void SetCr3(ULONG64 cr3)
+{
+	g_cr3 = cr3;
+}
+
 NTSTATUS ReadWriteVirtualAddressValue(ULONG64 virtualAddress, ULONG operateSize, PVOID Data, bool read)
 {
 	HANDLE hPhysMem = g_hPhysMem;
 	if(!hPhysMem)
 		return STATUS_UNSUCCESSFUL;
 
-	ULONG64 cr3 = NULL;
-	if (!g_cr3)
-		g_cr3 = GetCr3(hPhysMem);
-
-	cr3 = g_cr3;
+	ULONG64 cr3 = g_cr3;
 	if (!cr3)
 		return STATUS_UNSUCCESSFUL;
 

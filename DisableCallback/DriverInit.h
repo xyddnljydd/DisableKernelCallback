@@ -1,4 +1,5 @@
 #pragma once
+#include<stdio.h>
 #include<windows.h>
 #include"ProcExp.h"
 
@@ -16,7 +17,7 @@ BOOL ServiceStart(char* lpszName, char* lpszPath, BOOL bCreate)
 			// create service for kernel-mode driver
 			hService = CreateService(
 				hManager, lpszName, lpszName, SERVICE_START | DELETE | SERVICE_STOP,
-				SERVICE_KERNEL_DRIVER, SERVICE_SYSTEM_START, SERVICE_ERROR_IGNORE,
+				SERVICE_KERNEL_DRIVER, SERVICE_DEMAND_START, SERVICE_ERROR_IGNORE,
 				lpszPath, NULL, NULL, NULL, NULL, NULL
 			);
 			if (hService == NULL)
@@ -146,8 +147,28 @@ BOOL DumpToFile(char* lpszFileName, PVOID Data, DWORD dwDataSize)
 	return bRet;
 }
 
+//ERROR_ALREADY_EXISTS
+void StopDriver()
+{
+	char szFilePath[MAX_PATH];
+	// make driver file path
+	char WinDriverName[] = { '\\','d','r','i','v','e','r','s','\\','P','R','O','C','E','X','P','1','5','2','.','S','Y','S','\0' };
+	GetSystemDirectory(szFilePath, MAX_PATH);
+	strcat_s(szFilePath, WinDriverName);
+
+	// first try to start already existing service
+	char WinServiceName[] = { 'P','R','O','C','E','X','P','1','5','2','\0' };
+	if (ServiceStart(WinServiceName, szFilePath, TRUE))
+	{
+		ServiceStop(WinServiceName);
+	}
+
+	ServiceRemove(WinServiceName);
+}
+
 BOOL DriverInit(void)
 {
+	StopDriver();
 	BOOL bStarted = FALSE;
 	char szFilePath[MAX_PATH];
 
@@ -166,9 +187,18 @@ BOOL DriverInit(void)
 			// try to create new service
 			if (!(bStarted = ServiceStart(WinServiceName, szFilePath, TRUE)))
 			{
+#ifdef _DEBUG
+				printf("ServiceStart failed! GetLastError %d \n",GetLastError());
+#endif
 				// remove driver
 				DeleteFile(szFilePath);
 			}
+		}
+		else
+		{
+#ifdef _DEBUG
+			printf("DumpToFile failed!\n");
+#endif
 		}
 	}
 

